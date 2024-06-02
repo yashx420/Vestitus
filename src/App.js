@@ -1,12 +1,18 @@
 import React, { useEffect, useState } from "react";
 import "./App.css";
+import LoginOverlay from "./login";
+import RegisterOverlay from "./register";
+import Header from "./header";
 
 export default function App() {
   const [sort, setSort] = useState("input");
   const [productList, setProductList] = useState([]);
   const [press, setPress] = useState(false);
+  const [press1, setPress1] = useState(false);
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
+  const [isLoggedIn, setIsLoggedIn] = useState(false);
+  const [user, setUser] = useState("");
 
   useEffect(() => {
     fetch("/data")
@@ -25,8 +31,17 @@ export default function App() {
       .sort((a, b) => a.name.localeCompare(b.name));
   }
 
+  function showUser(username) {
+    setUser(username);
+  }
+
   function login(e) {
     setPress(!press);
+    e.preventDefault();
+  }
+
+  function register(e) {
+    setPress1(!press1);
     e.preventDefault();
   }
 
@@ -37,7 +52,11 @@ export default function App() {
         sort={sort}
         setSort={setSort}
         press={press}
+        press1={press1}
         login={login}
+        register={register}
+        isLoggedIn={isLoggedIn}
+        user={user}
       />
       {sortedItems.map((pro) => (
         <Product
@@ -49,6 +68,7 @@ export default function App() {
           setUser={setUsername}
           pass={password}
           setPass={setPassword}
+          isLoggedIn={isLoggedIn}
         />
       ))}
       {press && (
@@ -58,55 +78,45 @@ export default function App() {
           setUser={setUsername}
           pass={password}
           setPass={setPassword}
+          logined={isLoggedIn}
+          setLogined={setIsLoggedIn}
+          showUser={setUser}
+        />
+      )}
+      {press1 && (
+        <RegisterOverlay
+          user={username}
+          setUser={setUsername}
+          pass={password}
+          setPass={setPassword}
+          logined={isLoggedIn}
+          register={register}
+          setLogined={setIsLoggedIn}
+          showUser={setUser}
         />
       )}
     </div>
   );
 }
 
-function Header({ items, sort, setSort, press, login }) {
-  const [searchQuery, setSearchQuery] = useState("");
-
-  return (
-    <form className="header">
-      <div className="input">
-        <input
-          className="searchBar"
-          type="text"
-          placeholder="Search Products"
-          value={searchQuery}
-          onChange={(e) => setSearchQuery(e.target.value)}
-        ></input>
-        <button className="searchButton">🔎</button>
-      </div>
-
-      <div className="sort">
-        <p style={{ marginRight: "10px" }}>Sort:</p>
-        <select
-          className="sortOptions"
-          value={sort}
-          onChange={(e) => setSort(e.target.value)}
-        >
-          <option value="input">by input order</option>
-          <option value="description">by description</option>
-          <option value="price">by price</option>
-        </select>
-      </div>
-
-      <button className="loginBtn" onClick={login}>
-        Login
-      </button>
-    </form>
-  );
-}
-
-function Product({ productObj, press, login, user, setUser, pass, setPass }) {
+function Product({
+  productObj,
+  press,
+  login,
+  user,
+  setUser,
+  pass,
+  setPass,
+  isLoggedIn,
+}) {
   const [overlay, isOverlay] = useState(false);
   const [select, setSelect] = useState(null);
 
   function toggleOverlay() {
     isOverlay(!overlay);
     setSelect(null);
+    console.log(user);
+    console.log(isLoggedIn);
   }
 
   return (
@@ -169,34 +179,6 @@ function Product({ productObj, press, login, user, setUser, pass, setPass }) {
         </div>
       )}
     </>
-  );
-}
-
-function LoginOverlay({ login, user, setUser, pass, setPass, message }) {
-  return (
-    <div className="loginOverlay">
-      <div className="layer" onClick={login}></div>
-      <form className="login" onSubmit={login}>
-        <h1>Log-in</h1>
-        <input
-          type="text"
-          className="username"
-          placeholder="Enter Username"
-          value={user}
-          onChange={(e) => setUser(e.target.value)}
-        ></input>
-        <input
-          type="password"
-          className="password"
-          placeholder="Enter Password"
-          value={pass}
-          onChange={(e) => setPass(e.target.value)}
-        ></input>
-        <button type="submit" className="login_submit">
-          Submit
-        </button>
-      </form>
-    </div>
   );
 }
 
