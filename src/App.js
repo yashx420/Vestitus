@@ -3,22 +3,33 @@ import "./App.css";
 import LoginOverlay from "./login";
 import RegisterOverlay from "./register";
 import Header from "./header";
+import Cart from "./cart";
 
 export default function App() {
   const [sort, setSort] = useState("input");
   const [productList, setProductList] = useState([]);
   const [press, setPress] = useState(false);
   const [press1, setPress1] = useState(false);
+  const [press2, setPress2] = useState(false);
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
   const [isLoggedIn, setIsLoggedIn] = useState(false);
-  const [user, setUser] = useState("");
+  const [user, setUser] = useState({});
+  const [cartItems, setCartItems] = useState([]);
 
   useEffect(() => {
     fetch("/data")
       .then((res) => res.json())
       .then((data) => setProductList(data));
   }, []);
+
+  useEffect(() => {
+    if (isLoggedIn) {
+      fetch(`/cart?user_id=${user.id}`)
+        .then((res) => res.json())
+        .then((data) => setCartItems(data));
+    }
+  }, [isLoggedIn, user]);
 
   let sortedItems = productList;
   if (sort === "price") {
@@ -31,8 +42,13 @@ export default function App() {
       .sort((a, b) => a.name.localeCompare(b.name));
   }
 
-  function showUser(username) {
-    setUser(username);
+  function showUser(user) {
+    setUser(user);
+  }
+
+  function cart(e) {
+    setPress2(!press2);
+    e.preventDefault();
   }
 
   function login(e) {
@@ -43,6 +59,45 @@ export default function App() {
   function register(e) {
     setPress1(!press1);
     e.preventDefault();
+  }
+
+  function addToCart(product, size) {
+    const data = {
+      user_id: user.id,
+      product_id: product.id,
+      size: size,
+    };
+
+    fetch("/cart", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify(data),
+    })
+      .then((res) => res.json())
+      .then(() => {
+        setCartItems([...cartItems, { ...product, size: size }]);
+      });
+  }
+
+  function removeFromCart(product) {
+    const data = {
+      user_id: user.id,
+      product_id: product.id,
+    };
+
+    fetch("/cart", {
+      method: "DELETE",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify(data),
+    })
+      .then((res) => res.json())
+      .then(() => {
+        setCartItems(cartItems.filter((item) => item.id !== product.id));
+      });
   }
 
   return (
@@ -56,7 +111,9 @@ export default function App() {
         login={login}
         register={register}
         isLoggedIn={isLoggedIn}
+        setIsLoggedIn={setIsLoggedIn}
         user={user}
+        cart={cart}
       />
       {sortedItems.map((pro) => (
         <Product
@@ -69,6 +126,7 @@ export default function App() {
           pass={password}
           setPass={setPassword}
           isLoggedIn={isLoggedIn}
+          addToCart={addToCart}
         />
       ))}
       {press && (
@@ -80,7 +138,7 @@ export default function App() {
           setPass={setPassword}
           logined={isLoggedIn}
           setLogined={setIsLoggedIn}
-          showUser={setUser}
+          showUser={showUser}
         />
       )}
       {press1 && (
@@ -92,7 +150,14 @@ export default function App() {
           logined={isLoggedIn}
           register={register}
           setLogined={setIsLoggedIn}
-          showUser={setUser}
+          showUser={showUser}
+        />
+      )}
+      {press2 && (
+        <Cart
+          cart={cart}
+          cartItems={cartItems}
+          removeFromCart={removeFromCart}
         />
       )}
     </div>
@@ -108,6 +173,7 @@ function Product({
   pass,
   setPass,
   isLoggedIn,
+  addToCart,
 }) {
   const [overlay, isOverlay] = useState(false);
   const [select, setSelect] = useState(null);
@@ -117,6 +183,15 @@ function Product({
     setSelect(null);
     console.log(user);
     console.log(isLoggedIn);
+  }
+
+  function handleAddToCart() {
+    if (select) {
+      addToCart(productObj, select);
+      toggleOverlay();
+    } else {
+      alert("Please select a size.");
+    }
   }
 
   return (
@@ -172,7 +247,7 @@ function Product({
               <img src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAYAAAAf8/9hAAABM0lEQVQ4T4WTCU7DQAxFM21R4aB0Q2I5CW0luiT3BKRSwvPgH5xpKiJZmRnb3/a3ndq23VdVtUCOKaUF9zHnb84t/+7jPXEZ8X4OPnXi8o5iakpkh8FDCVI4v2G3siDIyQCOHGbIJ3JbZuIpKPKB+zzYNpZWBciO3xL5QO6QA5kseZ+YnvNXSFs2e95XlsHY66qxvQ8gmRMPoMhybtDNsm9Rn8qR4dpLeA7ANc7zjiePEBkWyAndjQPo3HemU5mDAGLlWL0b3h6NZVcb0Bbdk/NyVpuvAbziYGlHgDVOL4MABQ8ibKiEi2ErSdRUisStl2DllC3+ndjQxsFWOT+DLc6+bqDxVBSxHQepbHEee8tAaWuUuyGxFL0EjbIy+Rv7Ypk0wr2NvLKJF8vUi/zPOquc5gdTCBJf1wDangAAAABJRU5ErkJggg==" />
             </button>
 
-            <button className="modal-cart" onClick={toggleOverlay}>
+            <button className="modal-cart" onClick={handleAddToCart}>
               Add to Cart
             </button>
           </div>
